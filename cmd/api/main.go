@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/shashank/order-service/internal/handler"
+	"github.com/shashank/order-service/internal/middleware"
 	"github.com/shashank/order-service/internal/repository"
 	"github.com/shashank/order-service/internal/service"
 )
@@ -10,6 +11,10 @@ import (
 func main() {
 
 	router := gin.Default()
+
+	router.Use(middleware.Logger())
+
+	router.Use(middleware.AuthMiddleware())
 
 	orderRepository := repository.NewInMemoryOrderRepository()
 

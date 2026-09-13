@@ -20,6 +20,15 @@ func NewOrderHandler(s *service.OrderService) *OrderHandler {
 }
 
 func (o *OrderHandler) CreateOrder(ctx *gin.Context) {
+
+	user, exist := ctx.Get("userId")
+
+	if !exist {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "BC user Id to bheho",
+		})
+	}
+	fmt.Printf("Order being created by user %v\n", user)
 	var request dto.CreateOrderRequest
 	error := ctx.ShouldBindJSON(&request)
 
