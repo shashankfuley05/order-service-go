@@ -25,10 +25,12 @@ func (o *OrderHandler) CreateOrder(ctx *gin.Context) {
 
 	if !exist {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": "BC user Id to bheho",
+			"error": "User Id is missing.",
 		})
 	}
+
 	fmt.Printf("Order being created by user %v\n", user)
+
 	var request dto.CreateOrderRequest
 	error := ctx.ShouldBindJSON(&request)
 

@@ -33,7 +33,7 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		token := strings.TrimPrefix(authHeader, "Bearer ")
 
-		user, err := auth.ParseToken(token)
+		userClaims, err := auth.ParseTokenWithClaims(token)
 
 		if err != nil {
 			ctx.JSON(http.StatusUnauthorized, gin.H{
@@ -44,7 +44,8 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		ctx.Set("userId", user)
+		ctx.Set("userId", userClaims.UserId)
+		ctx.Set("roles", userClaims.Roles)
 		ctx.Next()
 
 	}

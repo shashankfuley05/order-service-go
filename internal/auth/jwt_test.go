@@ -90,3 +90,37 @@ func createTestToken(
 
 	return tokenString
 }
+
+func TestGenerateTokenWithClaimsForSuccess(t *testing.T) {
+
+	testUser := "TEST_USER"
+	token, err := GenerateTokenWithClaims(testUser, "ADMIN", "ORDER_MANAGER")
+
+	if err != nil {
+		t.Fatalf("Token couldn't be generate.")
+	}
+
+	userClaims, err := ParseTokenWithClaims(token)
+
+	if err != nil {
+		t.Fatalf("Error while parsing token %v", err.Error())
+	}
+
+	if testUser != userClaims.UserId {
+		t.Errorf("User expected was %v , but was received %v", testUser, userClaims.UserId)
+	}
+
+	roles := userClaims.Roles
+
+	if len(roles) != 2 {
+		t.Fatalf("Expected roles were 2, but recieved %d", len(roles))
+	}
+
+	if roles[0] != "ADMIN" {
+		t.Errorf("Expected roles was ADMIN but received %v", roles[0])
+	}
+
+	if roles[1] != "ORDER_MANAGER" {
+		t.Errorf("Expected role was ORDER_MANAGER but received %v", roles[0])
+	}
+}

@@ -13,7 +13,7 @@ func TestAuthMiddleware(t *testing.T) {
 
 	gin.SetMode(gin.TestMode)
 
-	validToken, err := auth.GenerateToken("TEST_SHASHANK")
+	validToken, err := auth.GenerateTokenWithClaims("TEST_SHASHANK", "ADMIN", "ORDER_MANAGER")
 
 	if err != nil {
 		t.Fatalf("failed to generate test token: %v", err)
@@ -25,6 +25,7 @@ func TestAuthMiddleware(t *testing.T) {
 		expectedStatus  int
 		expectedUser    string
 		handlerExpected bool
+		expectedRoles   []string
 	}{
 		{
 			name:            "Token is missing",
@@ -50,6 +51,7 @@ func TestAuthMiddleware(t *testing.T) {
 			expectedStatus:  http.StatusOK,
 			expectedUser:    "TEST_SHASHANK",
 			handlerExpected: true,
+			expectedRoles:   []string{"ADMIN", "ORDER_MANAGER"},
 		},
 	}
 
@@ -60,6 +62,8 @@ func TestAuthMiddleware(t *testing.T) {
 
 			handlerCalled := false
 			var receivedUser string
+
+			var roles []string
 
 			router := gin.New()
 
@@ -80,6 +84,20 @@ func TestAuthMiddleware(t *testing.T) {
 						receivedUser = userString
 					}
 				}
+
+				rawRoles, exists := ctx.Get("roles")
+
+				if exists {
+					roleSlice, ok := rawRoles.([]string)
+
+					if !ok {
+						t.Errorf("Expected roles to be of []string but got %T ", rawRoles)
+						return
+					}
+
+					roles = roleSlice
+				}
+
 			})
 
 			req := httptest.NewRequest(
@@ -118,6 +136,18 @@ func TestAuthMiddleware(t *testing.T) {
 						tt.expectedUser,
 						receivedUser,
 					)
+				}
+			}
+
+			if tt.expectedRoles != nil {
+				if len(roles) != len(tt.expectedRoles) {
+					t.Fatalf("Expected role length was %v, but received %v", len(tt.expectedRoles), len(roles))
+				}
+
+				for index, role := range roles {
+					if tt.expectedRoles[index] != role {
+						t.Fatalf("Expected role is %v, but received %v", tt.expectedRoles[index], role)
+					}
 				}
 			}
 		})
