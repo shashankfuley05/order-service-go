@@ -1,4 +1,4 @@
-package errors
+package apperrors
 
 import "errors"
 
@@ -7,3 +7,12 @@ var (
 	ErrDuplicateOrder = errors.New("Order already exist")
 	ErrInvalidAmount  = errors.New("Amount is invalid")
 )
+
+type ValidationErrors struct {
+	Field   string
+	Message string
+}
+
+func (err *ValidationErrors) Error() string {
+	return err.Message
+}

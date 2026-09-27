@@ -1,9 +1,10 @@
 package service
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/shashank/order-service/internal/dto"
+	apperrors "github.com/shashank/order-service/internal/errors"
 	"github.com/shashank/order-service/internal/model"
 	"github.com/shashank/order-service/internal/repository"
 )
@@ -21,7 +22,12 @@ func NewOrderService(r repository.OrderRepository) *OrderService {
 func (o *OrderService) CreateOrder(request *dto.CreateOrderRequest) (*model.Order, error) {
 
 	if request.Amount < 100000000.00 {
-		return nil, errors.New("BC amount ye kya chillar amount hai")
+
+		valiationError := &apperrors.ValidationErrors{
+			Field:   "amount",
+			Message: "Amount is invalid",
+		}
+		return nil, fmt.Errorf("order validation failed : %w", valiationError)
 	}
 	order := &model.Order{
 		CustomerName: request.CustomerName,
@@ -38,11 +44,20 @@ func (o *OrderService) FetchOrders() []model.Order {
 }
 
 func (o *OrderService) GetOrderByID(id string) (*model.Order, error) {
-	return o.orderRepository.GetOrderByID(id)
+	ord, err := o.orderRepository.GetOrderByID(id)
+	if err != nil {
+		return nil, fmt.Errorf("Order not found with id %s : %w", id, err)
+	}
+	return ord, nil
 }
 
 func (o *OrderService) DeleteOrderByID(id string) (string, error) {
-	return o.orderRepository.DeleteOrderByID(id)
+
+	message, err := o.orderRepository.DeleteOrderByID(id)
+	if err != nil {
+		return "", fmt.Errorf("Order not found with order id %s :%w", id, err)
+	}
+	return message, nil
 }
 
 func (o *OrderService) UpdateOrderByID(id string, request *dto.UpdateOrderRequest) (*model.Order, error) {
@@ -52,5 +67,10 @@ func (o *OrderService) UpdateOrderByID(id string, request *dto.UpdateOrderReques
 		Amount:       request.Amount,
 	}
 
-	return o.orderRepository.UpdateOrderByID(id, &order)
+	updatedOrder, err := o.orderRepository.UpdateOrderByID(id, &order)
+
+	if err != nil {
+		return nil, fmt.Errorf("Order not found with id %s : %w", id, err)
+	}
+	return updatedOrder, nil
 }

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -8,28 +9,18 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/shashank/order-service/internal/dto"
-	"github.com/shashank/order-service/internal/service"
+	apperrors "github.com/shashank/order-service/internal/errors"
 )
 
 type OrderHandler struct {
-	orderService *service.OrderService
+	orderService OrderService
 }
 
-func NewOrderHandler(s *service.OrderService) *OrderHandler {
+func NewOrderHandler(s OrderService) *OrderHandler {
 	return &OrderHandler{orderService: s}
 }
 
 func (o *OrderHandler) CreateOrder(ctx *gin.Context) {
-
-	user, exist := ctx.Get("userId")
-
-	if !exist {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": "User Id is missing.",
-		})
-	}
-
-	fmt.Printf("Order being created by user %v\n", user)
 
 	var request dto.CreateOrderRequest
 	error := ctx.ShouldBindJSON(&request)
@@ -42,7 +33,15 @@ func (o *OrderHandler) CreateOrder(ctx *gin.Context) {
 	order, error := o.orderService.CreateOrder(&request)
 
 	if error != nil {
-		writeError(ctx, http.StatusBadRequest, error.Error())
+		var status int
+		var validationErr *apperrors.ValidationErrors
+
+		if errors.As(error, &validationErr) {
+			status = http.StatusBadRequest
+		} else {
+			status = http.StatusInternalServerError
+		}
+		writeError(ctx, status, error.Error())
 		return
 	}
 
@@ -74,10 +73,20 @@ func (o *OrderHandler) FetchOrders(ctx *gin.Context) {
 }
 
 func (o *OrderHandler) GetOrderByID(ctx *gin.Context) {
-	response, error := o.orderService.GetOrderByID(ctx.Param("id"))
+	response, err := o.orderService.GetOrderByID(ctx.Param("id"))
 
-	if error != nil {
-		writeError(ctx, http.StatusNotFound, error.Error())
+	if err != nil {
+
+		var status int
+		if errors.Is(err, apperrors.ErrOrderNotFound) {
+			status = http.StatusNotFound
+
+		} else {
+			status = http.StatusInternalServerError
+
+		}
+
+		writeError(ctx, status, err.Error())
 		return
 	}
 
@@ -91,10 +100,16 @@ func (o *OrderHandler) GetOrderByID(ctx *gin.Context) {
 }
 
 func (o *OrderHandler) DeleteOrderByID(ctx *gin.Context) {
-	message, error := o.orderService.DeleteOrderByID(ctx.Param("id"))
+	message, err := o.orderService.DeleteOrderByID(ctx.Param("id"))
 
-	if error != nil {
-		writeError(ctx, http.StatusNotFound, error.Error())
+	if err != nil {
+		var status int
+		if errors.Is(err, apperrors.ErrOrderNotFound) {
+			status = http.StatusNotFound
+		} else {
+			status = http.StatusInternalServerError
+		}
+		writeError(ctx, status, err.Error())
 		return
 	}
 
@@ -113,8 +128,13 @@ func (o *OrderHandler) UpdateOrderByID(ctx *gin.Context) {
 	order, err := o.orderService.UpdateOrderByID(ctx.Param("id"), &request)
 
 	if err != nil {
-
-		writeError(ctx, http.StatusNotFound, err.Error())
+		var status int
+		if errors.Is(err, apperrors.ErrOrderNotFound) {
+			status = http.StatusNotFound
+		} else {
+			status = http.StatusInternalServerError
+		}
+		writeError(ctx, status, err.Error())
 		return
 	}
 

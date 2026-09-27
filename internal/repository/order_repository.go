@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	apperrors "github.com/shashank/order-service/internal/errors"
 	"github.com/shashank/order-service/internal/model"
 )
 
@@ -42,7 +43,7 @@ func (r *InMemoryOrderRepository) GetOrderByID(id string) (*model.Order, error) 
 			return &r.orders[o], nil
 		}
 	}
-	return nil, fmt.Errorf("No order found for order id %s", id)
+	return nil, apperrors.ErrOrderNotFound
 }
 
 func (r *InMemoryOrderRepository) DeleteOrderByID(id string) (string, error) {
@@ -54,7 +55,7 @@ func (r *InMemoryOrderRepository) DeleteOrderByID(id string) (string, error) {
 			return fmt.Sprintf("Order with order id %s is deleted.", id), nil
 		}
 	}
-	return "", fmt.Errorf("No order found for order id %s", id)
+	return "", apperrors.ErrOrderNotFound
 }
 
 func (r *InMemoryOrderRepository) UpdateOrderByID(id string, o *model.Order) (*model.Order, error) {
@@ -69,5 +70,5 @@ func (r *InMemoryOrderRepository) UpdateOrderByID(id string, o *model.Order) (*m
 		}
 	}
 
-	return nil, fmt.Errorf("No order found with id %s", id)
+	return nil, apperrors.ErrOrderNotFound
 }
