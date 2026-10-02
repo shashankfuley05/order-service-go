@@ -1,7 +1,11 @@
 package main
 
 import (
+	"fmt"
+	"log"
+
 	"github.com/gin-gonic/gin"
+	"github.com/shashank/order-service/internal/database"
 	"github.com/shashank/order-service/internal/handler"
 	"github.com/shashank/order-service/internal/middleware"
 	"github.com/shashank/order-service/internal/repository"
@@ -10,27 +14,44 @@ import (
 
 func main() {
 
+	pool, err := database.NewPostgresConnection()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer pool.Close()
+
+	fmt.Println("PostgreSQL connected successfully")
+
 	router := gin.Default()
+
+	tokenHandler := handler.NewTokenHandler(&service.AuthServiceImpl{})
 
 	router.Use(middleware.Logger())
 
-	router.Use(middleware.AuthMiddleware())
+	router.POST("/token", tokenHandler.GenerateTokenForUser)
 
-	orderRepository := repository.NewInMemoryOrderRepository()
+	orderRepository := repository.NewPostgresOrderRepository(pool)
 
 	orderService := service.NewOrderService(orderRepository)
 
 	orderHandler := handler.NewOrderHandler(orderService)
 
-	router.POST("/orders", orderHandler.CreateOrder)
+	routerGroup := router.Group("")
 
-	router.GET("/orders", orderHandler.FetchOrders)
+	routerGroup.Use(middleware.AuthMiddleware())
 
-	router.GET("/orders/:id", orderHandler.GetOrderByID)
+	routerGroup.POST("/orders", orderHandler.CreateOrder)
 
-	router.DELETE("/orders/:id", orderHandler.DeleteOrderByID)
+	routerGroup.GET("/orders", orderHandler.FetchOrders)
 
-	router.PUT("/orders/:id", orderHandler.UpdateOrderByID)
+	routerGroup.GET("/orders/:id", orderHandler.GetOrderByID)
+
+	routerGroup.DELETE("/orders/:id", orderHandler.DeleteOrderByID)
+
+	routerGroup.PUT("/orders/:id", orderHandler.UpdateOrderByID)
 
 	router.Run(":8080")
+
 }
