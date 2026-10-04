@@ -133,3 +133,60 @@ func TestCreateOrder_Testing(t *testing.T) {
 		})
 	}
 }
+
+func TestValidTransition(t *testing.T) {
+
+	tests := []struct {
+		name           string
+		existingStatus string
+		currentStatus  string
+		expectedResult bool
+	}{
+		{
+			name:           "CreatedToConfirmed",
+			existingStatus: "CREATED",
+			currentStatus:  "CONFIRMED",
+			expectedResult: true,
+		},
+		{
+			name:           "ConfirmedToShipped",
+			existingStatus: "CONFIRMED",
+			currentStatus:  "SHIPPED",
+			expectedResult: true,
+		},
+		{
+			name:           "ShippedToDelivered",
+			existingStatus: "SHIPPED",
+			currentStatus:  "DELIVERED",
+			expectedResult: true,
+		},
+		{
+			name:           "CreatedToShipped",
+			existingStatus: "CREATED",
+			currentStatus:  "SHIPPED",
+			expectedResult: false,
+		},
+		{
+			name:           "CreatedToDelivered",
+			existingStatus: "CREATED",
+			currentStatus:  "DELIVERED",
+			expectedResult: false,
+		},
+		{
+			name:           "DeliveredToConfirmed",
+			existingStatus: "DELIVERED",
+			currentStatus:  "CONFIRMED",
+			expectedResult: false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			result := isValidTransition(test.existingStatus, test.currentStatus)
+			if result != test.expectedResult {
+				t.Errorf("Test failed for test %s, expected %v but got %v", test.name, test.expectedResult, result)
+			}
+		})
+	}
+
+}

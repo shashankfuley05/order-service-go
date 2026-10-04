@@ -42,15 +42,15 @@ func main() {
 
 	routerGroup.Use(middleware.AuthMiddleware())
 
-	routerGroup.POST("/orders", orderHandler.CreateOrder)
+	routerGroup.POST("/orders", middleware.RequiredRole([]string{"ADMIN"}), orderHandler.CreateOrder)
 
-	routerGroup.GET("/orders", orderHandler.FetchOrders)
+	routerGroup.GET("/orders", middleware.RequiredRole([]string{"USER", "ADMIN"}), orderHandler.FetchOrders)
 
-	routerGroup.GET("/orders/:id", orderHandler.GetOrderByID)
+	routerGroup.GET("/orders/:id", middleware.RequiredRole([]string{"USER", "ADMIN"}), orderHandler.GetOrderByID)
 
-	routerGroup.DELETE("/orders/:id", orderHandler.DeleteOrderByID)
+	routerGroup.DELETE("/orders/:id", middleware.RequiredRole([]string{"ADMIN"}), orderHandler.DeleteOrderByID)
 
-	routerGroup.PUT("/orders/:id", orderHandler.UpdateOrderByID)
+	routerGroup.PUT("/orders/:id", middleware.RequiredRole([]string{"ADMIN"}), orderHandler.UpdateOrderByID)
 
 	router.Run(":8080")
 

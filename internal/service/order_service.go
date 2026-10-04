@@ -63,8 +63,17 @@ func (o *OrderService) DeleteOrderByID(id string) (string, error) {
 func (o *OrderService) UpdateOrderByID(id string, request *dto.UpdateOrderRequest) (*model.Order, error) {
 
 	order := model.Order{
-		CustomerName: request.CustomerName,
-		Amount:       request.Amount,
+		Status: request.Status,
+	}
+
+	existingOrders, err := o.orderRepository.GetOrderByID(id)
+
+	if err != nil {
+		return nil, fmt.Errorf("Order not found with order id %s : %w", id, err)
+	}
+
+	if !isValidTransition(existingOrders.Status, request.Status) {
+		return nil, fmt.Errorf("Invalid status")
 	}
 
 	updatedOrder, err := o.orderRepository.UpdateOrderByID(id, &order)
@@ -72,5 +81,29 @@ func (o *OrderService) UpdateOrderByID(id string, request *dto.UpdateOrderReques
 	if err != nil {
 		return nil, fmt.Errorf("Order not found with id %s : %w", id, err)
 	}
+
 	return updatedOrder, nil
+}
+
+func isValidTransition(existingStatus string, newStatus string) bool {
+
+	if existingStatus == "CREATED" {
+		if newStatus == "CONFIRMED" {
+			return true
+		}
+	}
+
+	if existingStatus == "CONFIRMED" {
+		if newStatus == "SHIPPED" {
+			return true
+		}
+	}
+
+	if existingStatus == "SHIPPED" {
+		if newStatus == "DELIVERED" {
+			return true
+		}
+	}
+
+	return false
 }

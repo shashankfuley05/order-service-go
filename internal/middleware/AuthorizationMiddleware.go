@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RequiredRole(requiredRole string) gin.HandlerFunc {
+func RequiredRole(requiredRoles []string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		rawRoles, ok := ctx.Get("roles")
 
@@ -31,9 +31,11 @@ func RequiredRole(requiredRole string) gin.HandlerFunc {
 		}
 
 		for _, role := range roles {
-			if role == requiredRole {
-				ctx.Next()
-				return
+			for _, requiredRole := range requiredRoles {
+				if role == requiredRole {
+					ctx.Next()
+					return
+				}
 			}
 		}
 

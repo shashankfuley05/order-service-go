@@ -3,17 +3,25 @@ package repository
 import (
 	"context"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	apperrors "github.com/shashank/order-service/internal/errors"
 	"github.com/shashank/order-service/internal/model"
 )
 
-type PostgresOrderRepository struct {
-	db *pgxpool.Pool
+type PostgresDB interface {
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
 }
 
-func NewPostgresOrderRepository(pool *pgxpool.Pool) *PostgresOrderRepository {
+type PostgresOrderRepository struct {
+	db PostgresDB
+}
+
+func NewPostgresOrderRepository(db PostgresDB) *PostgresOrderRepository {
 	return &PostgresOrderRepository{
-		db: pool,
+		db: db,
 	}
 }
 
@@ -35,17 +43,94 @@ func (p *PostgresOrderRepository) Save(o *model.Order) (*model.Order, error) {
 }
 
 func (p *PostgresOrderRepository) GetAll() []model.Order {
-	return nil
+
+	query := `SELECT id, customer_name, amount, status from orders`
+
+	rows, err := p.db.Query(context.Background(), query)
+
+	if err != nil {
+		return []model.Order{}
+	}
+
+	defer rows.Close()
+
+	reponse := make([]model.Order, 0)
+
+	for rows.Next() {
+		var tempModel model.Order
+
+		err := rows.Scan(
+			&tempModel.ID,
+			&tempModel.CustomerName,
+			&tempModel.Amount,
+			&tempModel.Status,
+		)
+
+		if err != nil {
+			return []model.Order{}
+		}
+
+		reponse = append(reponse, tempModel)
+	}
+
+	return reponse
 }
 
 func (p *PostgresOrderRepository) GetOrderByID(id string) (*model.Order, error) {
-	return nil, nil
+
+	query := `SELECT id, customer_name, amount, status from orders WHERE id = $1`
+
+	row := p.db.QueryRow(context.Background(), query, id)
+
+	var order model.Order
+
+	err := row.Scan(
+		&order.ID,
+		&order.CustomerName,
+		&order.Amount,
+		&order.Status,
+	)
+
+	if err != nil {
+		return nil, apperrors.ErrOrderNotFound
+	}
+
+	return &order, nil
 }
 
 func (p *PostgresOrderRepository) DeleteOrderByID(id string) (string, error) {
-	return "", nil
+	query := `DELETE FROM orders where id = $1`
+
+	row, err := p.db.Exec(context.Background(), query, id)
+
+	if err != nil {
+		return "", err
+	}
+
+	if row.RowsAffected() == 0 {
+		return "", apperrors.ErrOrderNotFound
+	}
+
+	return id, nil
 }
 
 func (p *PostgresOrderRepository) UpdateOrderByID(id string, o *model.Order) (*model.Order, error) {
-	return nil, nil
+
+	var udpatedOrder model.Order
+
+	query := `UPDATE orders SET status = $1 WHERE id = $2 RETURNING id, customer_name, amount, status;`
+
+	row := p.db.QueryRow(context.Background(), query, o.Status, id)
+
+	err := row.Scan(
+		&udpatedOrder.ID,
+		&udpatedOrder.CustomerName,
+		&udpatedOrder.Amount,
+		&udpatedOrder.Status,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+	return &udpatedOrder, nil
 }

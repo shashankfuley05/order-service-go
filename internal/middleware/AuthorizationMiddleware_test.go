@@ -66,7 +66,7 @@ func TestAuthorizationMiddleWare(t *testing.T) {
 				ctx.Set("roles", tt.roleToGenerate)
 				ctx.Next()
 			})
-			router.Use(RequiredRole(tt.requiredRole))
+			router.Use(RequiredRole([]string{tt.requiredRole}))
 
 			router.POST("/orders", func(ctx *gin.Context) {
 				handlerCalled = true
