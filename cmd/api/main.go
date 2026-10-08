@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"github.com/shashank/order-service/internal/database"
 	"github.com/shashank/order-service/internal/handler"
 	"github.com/shashank/order-service/internal/middleware"
@@ -20,7 +21,25 @@ import (
 
 func main() {
 
-	pool, err := database.NewPostgresConnection()
+	err := godotenv.Load()
+
+	if err != nil {
+		log.Fatalf("Couldn't load environment %v", err)
+	}
+
+	postgresConfig := &database.PostgresConfig{
+		User:     os.Getenv("DB_USER"),
+		Password: os.Getenv("DB_PASSWORD"),
+		Host:     os.Getenv("DB_HOST"),
+		Port:     os.Getenv("DB_PORT"),
+		Database: os.Getenv("DB_NAME"),
+	}
+
+	if err := validatePostgresConfig(postgresConfig); err != nil {
+		log.Fatalf("Config not found %v", err)
+	}
+
+	pool, err := database.NewPostgresConnection(postgresConfig)
 
 	if err != nil {
 		log.Fatal(err)
@@ -59,8 +78,11 @@ func main() {
 	routerGroup.PUT("/orders/:id", middleware.RequiredRole([]string{"ADMIN"}), orderHandler.UpdateOrderByID)
 
 	server := &http.Server{
-		Addr:    ":8080",
+		Addr:    os.Getenv("SERVER_PORT"),
 		Handler: router,
+	}
+	if err := validateServerConfig(server); err != nil {
+		log.Fatalf("%v", err)
 	}
 
 	go func() {
@@ -80,9 +102,34 @@ func main() {
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		fmt.Printf("%v", err)
+		fmt.Printf("Couldn't shutdown gracefully %v", err)
 	}
 
-	log.Println("Server gracefully stopped")
+}
 
+func validateServerConfig(server *http.Server) error {
+	if server.Addr == "" {
+		return fmt.Errorf("SERVER_PORT is requireds")
+	}
+
+	return nil
+}
+func validatePostgresConfig(config *database.PostgresConfig) error {
+	if config.Host == "" {
+		return fmt.Errorf("DB_HOST is required")
+	}
+	if config.Port == "" {
+		return fmt.Errorf("DB_PORT is required")
+	}
+	if config.User == "" {
+		return fmt.Errorf("DB_USER is required")
+	}
+	if config.Password == "" {
+		return fmt.Errorf("DB_PASSWORD is required")
+	}
+	if config.Database == "" {
+		return fmt.Errorf("DB_NAME is required")
+	}
+
+	return nil
 }

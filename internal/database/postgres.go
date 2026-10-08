@@ -7,9 +7,17 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func NewPostgresConnection() (*pgxpool.Pool, error) {
+type PostgresConfig struct {
+	Host     string
+	Port     string
+	User     string
+	Password string
+	Database string
+}
 
-	dsn := "postgres://postgres:postgres@localhost:5432/orderdb"
+func NewPostgresConnection(config *PostgresConfig) (*pgxpool.Pool, error) {
+
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s", config.User, config.Password, config.Host, config.Port, config.Database)
 
 	pool, err := pgxpool.New(context.Background(), dsn)
 
