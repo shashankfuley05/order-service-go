@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"log"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -49,6 +50,7 @@ func (p *PostgresOrderRepository) GetAll() []model.Order {
 	rows, err := p.db.Query(context.Background(), query)
 
 	if err != nil {
+		log.Printf("Error occured while fethcing orders %v", err)
 		return []model.Order{}
 	}
 
@@ -92,6 +94,7 @@ func (p *PostgresOrderRepository) GetOrderByID(id string) (*model.Order, error) 
 	)
 
 	if err != nil {
+		log.Printf("Error while fetching order by order id %s cause %v", id, err)
 		return nil, apperrors.ErrOrderNotFound
 	}
 

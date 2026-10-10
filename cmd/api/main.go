@@ -47,7 +47,7 @@ func main() {
 
 	defer pool.Close()
 
-	fmt.Println("PostgreSQL connected successfully")
+	log.Println("PostgreSQL connected successfully")
 
 	router := gin.Default()
 
@@ -102,7 +102,7 @@ func main() {
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		fmt.Printf("Couldn't shutdown gracefully %v", err)
+		log.Printf("Couldn't shutdown gracefully %v", err)
 	}
 
 }

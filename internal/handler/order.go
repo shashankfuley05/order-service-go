@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"reflect"
 
@@ -26,13 +27,14 @@ func (o *OrderHandler) CreateOrder(ctx *gin.Context) {
 	error := ctx.ShouldBindJSON(&request)
 
 	if error != nil {
+		log.Printf("Error while validating order ,%v", error)
 		mapValidationError(ctx, error, request)
 		return
 	}
 
-	order, error := o.orderService.CreateOrder(&request)
+	order, err := o.orderService.CreateOrder(&request)
 
-	if error != nil {
+	if err != nil {
 		var status int
 		var validationErr *apperrors.ValidationErrors
 
@@ -41,7 +43,9 @@ func (o *OrderHandler) CreateOrder(ctx *gin.Context) {
 		} else {
 			status = http.StatusInternalServerError
 		}
-		writeError(ctx, status, error.Error())
+
+		log.Printf("Error while creating order %v", err)
+		writeError(ctx, status, err.Error())
 		return
 	}
 
@@ -85,7 +89,7 @@ func (o *OrderHandler) GetOrderByID(ctx *gin.Context) {
 			status = http.StatusInternalServerError
 
 		}
-
+		log.Printf("Error while fetching order with order id %s reason %v", ctx.Param("id"), err)
 		writeError(ctx, status, err.Error())
 		return
 	}
@@ -109,6 +113,7 @@ func (o *OrderHandler) DeleteOrderByID(ctx *gin.Context) {
 		} else {
 			status = http.StatusInternalServerError
 		}
+		log.Printf("Error while deleting order id %s reason %v", ctx.Param("id"), err)
 		writeError(ctx, status, err.Error())
 		return
 	}
@@ -121,6 +126,7 @@ func (o *OrderHandler) UpdateOrderByID(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&request)
 
 	if err != nil {
+		log.Printf("Error while validating update request %v", err)
 		mapValidationError(ctx, err, request)
 		return
 	}
@@ -134,6 +140,7 @@ func (o *OrderHandler) UpdateOrderByID(ctx *gin.Context) {
 		} else {
 			status = http.StatusInternalServerError
 		}
+		log.Printf("Error while updating order for order id %s and %v", ctx.Param("id"), err)
 		writeError(ctx, status, err.Error())
 		return
 	}
